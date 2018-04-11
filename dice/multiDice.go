@@ -1,6 +1,8 @@
 package dice
 
-import "github.com/walesey/dicelang/histogram"
+import (
+	"github.com/walesey/dicelang/histogram"
+)
 
 type MultiDice struct {
 	Dice  Dice

@@ -67,9 +67,18 @@ func Multiply(histograms ...Histogram) Histogram {
 	return Fixed(hist)
 }
 
-func RoundHistogram(h map[int]float64) {
+func Invert(histogram Histogram) Histogram {
+	hist := make(map[int]float64)
+	for k, v := range histogram.Hist() {
+		hist[k] = 1.0 - v
+	}
+	return Fixed(hist)
+}
+
+func RoundHistogram(h map[int]float64) map[int]float64 {
 	unit := 0.001
 	for k, v := range h {
 		h[k] = math.Round(v/unit) * unit
 	}
+	return h
 }

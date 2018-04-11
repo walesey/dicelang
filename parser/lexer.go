@@ -87,6 +87,8 @@ func (lexer Lexer) Scan() (tkn token.Token, literal string, err error) {
 		tkn = token.PERIOD
 	case ',':
 		tkn = token.COMMA
+	case '\n', '\r':
+		tkn = token.NEWLINE
 	default:
 		err = UnexpectedTokenError{fmt.Errorf(fmt.Sprintf("Unexpected Token '%c'", chr))}
 		tkn = token.ILLEGAL

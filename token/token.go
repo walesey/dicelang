@@ -9,6 +9,7 @@ const (
 	ILLEGAL
 	EOF
 	WHITESPACE
+	NEWLINE
 	COMMENT // //
 	KEYWORD
 
@@ -27,6 +28,8 @@ func (tkn Token) String() string {
 	switch tkn {
 	case WHITESPACE:
 		return "WHITESPACE"
+	case NEWLINE:
+		return "NEWLINE"
 	case STRING:
 		return "STRING"
 	case BOOLEAN:
