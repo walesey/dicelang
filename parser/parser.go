@@ -1,9 +1,11 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/walesey/dicelang/histogram"
 	"github.com/walesey/dicelang/token"
 )
 
@@ -27,12 +29,13 @@ func (parser Parser) parseToken(expect token.Token) (string, error) {
 	return literal, nil
 }
 
-func (parser Parser) parseStatement() (hist Histogram, err error) {
-	var literal string
-	if literal, err = parser.parseToken(token.IDENTIFIER); err != nil {
-		return
-	}
+func (parser Parser) parseStatement() (hist histogram.Histogram, err error) {
+	// var literal string
+	// if literal, err = parser.parseToken(token.IDENTIFIER); err != nil {
+	// 	return
+	// }
 
+	return
 }
 
 func (parser Parser) SimpleExec() (result string, err error) {
@@ -45,7 +48,7 @@ func (parser Parser) SimpleExec() (result string, err error) {
 		return
 	}
 
-	var hist Histogram
+	var hist histogram.Histogram
 	if hist, err = parser.parseStatement(); err != nil {
 		return
 	}
@@ -64,8 +67,12 @@ func (parser Parser) SimpleExec() (result string, err error) {
 		}
 		data = prob
 	default:
-		err := fmt.Errorf("Invalid operation '%v'", operation)
+		err = fmt.Errorf("Invalid operation '%v'", operation)
+		return
 	}
 
+	var resultData []byte
+	resultData, err = json.Marshal(data)
+	result = string(resultData)
 	return
 }

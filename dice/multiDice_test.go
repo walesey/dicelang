@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/walesey/dicelang/histogram"
 )
 
 func Test_MultiDice_Hist(t *testing.T) {
@@ -22,5 +23,7 @@ func Test_MultiDice_Hist(t *testing.T) {
 		11: 2.0 / 36.0,
 		12: 1.0 / 36.0,
 	}
+	histogram.RoundHistogram(expected)
+	histogram.RoundHistogram(h)
 	assert.EqualValues(t, expected, h)
 }
