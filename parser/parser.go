@@ -118,24 +118,69 @@ func (parser Parser) parseDice() (hist histogram.Histogram, tkn token.Token, lit
 }
 
 func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histogram.Histogram, err error) {
-	d := dice.Dice{Size: size}
-
 	if _, err = parser.parseToken(token.PERIOD); err != nil {
 		return
 	}
 
+	var tkn token.Token
 	var literal string
-	if literal, err = parser.parseToken(token.IDENTIFIER); err != nil {
+	if tkn, literal, err = parser.lexer.Scan(); err != nil {
 		return
 	}
 
+	switch tkn {
+	case token.OPEN_BRACKET:
+		if hist, err = parser.parseDiceOperatorAggregate(size, count, invert); err != nil {
+			return
+		}
+	case token.IDENTIFIER:
+		if hist, err = parser.parseDiceOperatorLiteral(size, count, invert, literal); err != nil {
+			return
+		}
+	default:
+		err = fmt.Errorf("Unexpected token '%v', expected dice operator", tkn.String())
+	}
+
+	return
+}
+
+func (parser Parser) parseDiceOperatorAggregate(size, count int, invert bool) (hist histogram.Histogram, err error) {
+	histograms := []histogram.Histogram{}
+
+	var tkn token.Token
+	var literal string
+	for {
+		if literal, err = parser.parseToken(token.IDENTIFIER); err != nil {
+			return
+		}
+		if hist, err = parser.parseDiceOperatorLiteral(size, count, invert, literal); err != nil {
+			return
+		}
+		if hist, tkn, literal, err = parser.parseStatement(); err != nil {
+			return
+		}
+		histograms = append(histograms, hist)
+		if tkn != token.COMMA {
+			break
+		}
+	}
+
+	hist = histogram.Aggregate(histograms...)
+	if tkn != token.CLOSE_BRACKET {
+		err = fmt.Errorf("Unexpected token '%v', expected close bracket ']'", tkn.String())
+	}
+	return
+}
+
+func (parser Parser) parseDiceOperatorLiteral(size, count int, invert bool, literal string) (hist histogram.Histogram, err error) {
+	d := dice.Dice{Size: size}
 	if literal == "not" {
 		if hist, err = parser.parseDiceOperator(size, count, !invert); err != nil {
 			return
 		}
 	} else if literal == "add" {
 		hist = dice.MultiDice{Dice: d, Count: count}
-	} else {
+	} else { // gte: eg. 4+, 6+, ...
 		re := regexp.MustCompile(`([0-9]+)\+`)
 		matches := re.FindStringSubmatch(literal)
 		var gte int
@@ -148,7 +193,6 @@ func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histo
 			hist = dice.DicePool{Dice: d, Count: count, GTE: gte}
 		}
 	}
-
 	return
 }
 

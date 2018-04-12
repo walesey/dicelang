@@ -31,60 +31,76 @@ func (fh Fixed) Hist() map[int]float64 {
 
 // Aggregate [4d6.4+, 4d6.6+]
 func Aggregate(histograms ...Histogram) Histogram {
+	if len(histograms) == 0 {
+		return nil
+	}
+	hist := histograms[0]
+	for i := 1; i < len(histograms); i++ {
+		hist = aggregate(hist, histograms[i])
+	}
+	return hist
+}
+
+func aggregate(h1, h2 Histogram) Histogram {
+	hist1 := h1.Hist()
+	hist2 := h2.Hist()
 	hist := make(map[int]float64)
-	var recur func(prob float64, total, i int)
-	recur = func(prob float64, total, i int) {
-		for v, p := range histograms[i].Hist() {
-			if i >= len(histograms)-1 {
-				k := total + v
-				if current, ok := hist[k]; ok {
-					hist[k] = current + prob*p
-				} else {
-					hist[k] = prob * p
-				}
+	for v1, p1 := range hist1 {
+		for v2, p2 := range hist2 {
+			v := v1 + v2
+			p := p1 * p2
+			if current, ok := hist[v]; ok {
+				hist[v] = current + p
 			} else {
-				recur(prob*p, total+v, i+1)
+				hist[v] = p
 			}
 		}
 	}
-	recur(1, 0, 0)
 	return Fixed(hist)
 }
 
 // Multiply 2d3.add.d6.4+
 func Multiply(histograms ...Histogram) Histogram {
+	if len(histograms) == 0 {
+		return nil
+	}
+	hist := histograms[0]
+	for i := 1; i < len(histograms); i++ {
+		hist = multiply(hist, histograms[i])
+	}
+	return hist
+}
+
+func multiply(h1, h2 Histogram) Histogram {
+	hist1 := h1.Hist()
 	hist := make(map[int]float64)
-	var recur func(prob float64, total, i int)
-	recur = func(prob float64, total, i int) {
-		hList := make([]Histogram, total)
-		for j := 0; j < total; j++ {
-			hList[j] = histograms[i]
+	for v1, p1 := range hist1 {
+		hList := make([]Histogram, v1)
+		for i := 0; i < v1; i++ {
+			hList[i] = h2
 		}
-		histogram := Aggregate(hList...)
-		for v, p := range histogram.Hist() {
-			if i >= len(histograms)-1 {
-				if current, ok := hist[v]; ok {
-					hist[v] = current + prob*p
-				} else {
-					hist[v] = prob * p
-				}
+		h2Aggregate := Aggregate(hList...)
+		for v2, p2 := range h2Aggregate.Hist() {
+			v := v2
+			p := p1 * p2
+			if current, ok := hist[v]; ok {
+				hist[v] = current + p
 			} else {
-				recur(prob*p, v, i+1)
+				hist[v] = p
 			}
 		}
 	}
-	recur(1, 1, 0)
 	return Fixed(hist)
 }
 
 func RoundHistogram(h map[int]float64) map[int]float64 {
 	for k, v := range h {
-		h[k] = Round(v, .5, 5)
+		h[k] = round(v, .5, 5)
 	}
 	return h
 }
 
-func Round(val float64, roundOn float64, places int) (newVal float64) {
+func round(val float64, roundOn float64, places int) (newVal float64) {
 	var round float64
 	pow := math.Pow(10, float64(places))
 	digit := pow * val

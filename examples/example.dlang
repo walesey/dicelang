@@ -15,4 +15,6 @@ hist 2d3.add.d6.4+.d6.not.6+
 
 hist [4d6.4+, 4d6.6+].d6.5+
 
-hist 2d6.add.d6.[4+, 6+].d6.5+
+hist d6.[4+, 6+]
+
+//
