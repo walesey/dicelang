@@ -63,11 +63,6 @@ func Test_Lexer_Scan(t *testing.T) {
 
 	tkn, l, e = lexer.Scan()
 	assert.Nil(t, e)
-	assert.EqualValues(t, token.WHITESPACE, tkn)
-	assert.EqualValues(t, " ", l)
-
-	tkn, l, e = lexer.Scan()
-	assert.Nil(t, e)
 	assert.EqualValues(t, token.IDENTIFIER, tkn)
 	assert.EqualValues(t, "2d3", l)
 

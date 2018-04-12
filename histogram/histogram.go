@@ -2,6 +2,7 @@ package histogram
 
 import (
 	"math"
+	"math/rand"
 )
 
 type Histogram interface {
@@ -12,7 +13,16 @@ type Histogram interface {
 type Fixed map[int]float64
 
 func (fh Fixed) Resolve() int {
-	return 0 //TODO
+	hist := fh.Hist()
+	rnb := rand.Float64()
+	var f float64
+	for val, prob := range hist {
+		if rnb > f && rnb <= f+prob {
+			return val
+		}
+		f += prob
+	}
+	return -1
 }
 
 func (fh Fixed) Hist() map[int]float64 {
@@ -67,18 +77,23 @@ func Multiply(histograms ...Histogram) Histogram {
 	return Fixed(hist)
 }
 
-func Invert(histogram Histogram) Histogram {
-	hist := make(map[int]float64)
-	for k, v := range histogram.Hist() {
-		hist[k] = 1.0 - v
-	}
-	return Fixed(hist)
-}
-
 func RoundHistogram(h map[int]float64) map[int]float64 {
-	unit := 0.001
 	for k, v := range h {
-		h[k] = math.Round(v/unit) * unit
+		h[k] = Round(v, .5, 5)
 	}
 	return h
+}
+
+func Round(val float64, roundOn float64, places int) (newVal float64) {
+	var round float64
+	pow := math.Pow(10, float64(places))
+	digit := pow * val
+	_, div := math.Modf(digit)
+	if div >= roundOn {
+		round = math.Ceil(digit)
+	} else {
+		round = math.Floor(digit)
+	}
+	newVal = round / pow
+	return
 }

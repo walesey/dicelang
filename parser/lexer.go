@@ -49,7 +49,10 @@ func (lexer Lexer) peek() (chr rune, err error) {
 	return
 }
 
+// Scan - scan a single token from the input
 func (lexer Lexer) Scan() (tkn token.Token, literal string, err error) {
+	lexer.parseWhiteSpace()
+
 	if literal, err = lexer.parseIdentifier(); err == nil {
 		tkn = token.IDENTIFIER
 		return
@@ -71,14 +74,6 @@ func (lexer Lexer) Scan() (tkn token.Token, literal string, err error) {
 			lexer.read()
 			tkn = token.COMMENT
 		}
-	case ' ':
-		if _, err = lexer.src.Seek(-1, io.SeekCurrent); err != nil {
-			return
-		}
-		if literal, err = lexer.parseWhiteSpace(); err != nil {
-			return
-		}
-		tkn = token.WHITESPACE
 	case '[':
 		tkn = token.OPEN_BRACKET
 	case ']':
@@ -128,6 +123,14 @@ func (lexer Lexer) parseGeneric(isPart RuneFunc) (literal string, err error) {
 }
 
 func (lexer Lexer) parseWhiteSpace() (literal string, err error) {
+	var chr rune
+	if chr, err = lexer.peek(); err != nil {
+		return
+	} else if !isWhiteSpace(chr) {
+		err = fmt.Errorf("Invalid character used at the start of Whitespace")
+		return
+	}
+
 	return lexer.parseGeneric(isWhiteSpace)
 }
 

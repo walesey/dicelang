@@ -29,12 +29,8 @@ func (parser Parser) Execute() (result string, err error) {
 		return
 	}
 
-	if _, err = parser.parseToken(token.WHITESPACE); err != nil {
-		return
-	}
-
 	var hist histogram.Histogram
-	if hist, err = parser.parseStatement(); err != nil {
+	if hist, _, _, err = parser.parseStatement(); err != nil {
 		return
 	}
 
@@ -72,19 +68,20 @@ func (parser Parser) parseToken(expect token.Token) (string, error) {
 	return literal, nil
 }
 
-func (parser Parser) parseStatement() (histogram.Histogram, error) {
+func (parser Parser) parseStatement() (hist histogram.Histogram, tkn token.Token, literal string, err error) {
 	histograms := []histogram.Histogram{}
 	for {
-		hist, _, _, err := parser.parseDice()
+		hist, tkn, literal, err = parser.parseDice()
 		if err != nil {
-			return nil, err
+			return
 		}
 		if hist == nil {
 			break
 		}
 		histograms = append(histograms, hist)
 	}
-	return histogram.Multiply(histograms...), nil
+	hist = histogram.Multiply(histograms...)
+	return
 }
 
 func (parser Parser) parseDice() (hist histogram.Histogram, tkn token.Token, literal string, err error) {
@@ -97,7 +94,6 @@ func (parser Parser) parseDice() (hist histogram.Histogram, tkn token.Token, lit
 
 	re := regexp.MustCompile(`(|[0-9]+)d([0-9]+)`)
 	matches := re.FindStringSubmatch(literal)
-	fmt.Println(matches)
 
 	if len(matches) < 3 {
 		err = fmt.Errorf("Invalid dice syntax: '%v'", literal)
@@ -117,11 +113,11 @@ func (parser Parser) parseDice() (hist histogram.Histogram, tkn token.Token, lit
 		return
 	}
 
-	hist, err = parser.parseDiceOperator(size, count)
+	hist, err = parser.parseDiceOperator(size, count, false)
 	return
 }
 
-func (parser Parser) parseDiceOperator(size, count int) (hist histogram.Histogram, err error) {
+func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histogram.Histogram, err error) {
 	d := dice.Dice{Size: size}
 
 	if _, err = parser.parseToken(token.PERIOD); err != nil {
@@ -134,10 +130,9 @@ func (parser Parser) parseDiceOperator(size, count int) (hist histogram.Histogra
 	}
 
 	if literal == "not" {
-		if hist, err = parser.parseDiceOperator(size, count); err != nil {
+		if hist, err = parser.parseDiceOperator(size, count, !invert); err != nil {
 			return
 		}
-		hist = histogram.Invert(hist)
 	} else if literal == "add" {
 		hist = dice.MultiDice{Dice: d, Count: count}
 	} else {
@@ -147,7 +142,11 @@ func (parser Parser) parseDiceOperator(size, count int) (hist histogram.Histogra
 		if gte, err = strconv.Atoi(matches[1]); err != nil {
 			return
 		}
-		hist = dice.DicePool{Dice: d, Count: count, GTE: gte}
+		if invert {
+			hist = dice.DicePool{Dice: d, Count: count, GTE: size - gte + 2}
+		} else {
+			hist = dice.DicePool{Dice: d, Count: count, GTE: gte}
+		}
 	}
 
 	return
@@ -161,7 +160,20 @@ func (parser Parser) parseAggregate() (hist histogram.Histogram, tkn token.Token
 		return
 	}
 
-	//TODO
+	histograms := []histogram.Histogram{}
+	for {
+		if hist, tkn, literal, err = parser.parseStatement(); err != nil {
+			return
+		}
+		histograms = append(histograms, hist)
+		if tkn != token.COMMA {
+			break
+		}
+	}
 
+	hist = histogram.Aggregate(histograms...)
+	if tkn != token.CLOSE_BRACKET {
+		err = fmt.Errorf("Unexpected token '%v', expected close bracket ']'", tkn.String())
+	}
 	return
 }
