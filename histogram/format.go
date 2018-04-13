@@ -18,6 +18,7 @@ func (a ByValue) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByValue) Less(i, j int) bool { return a[i].V < a[j].V }
 
 func FormatHistogram(h map[int]float64) []HistogramColumn {
+	h = RoundHistogram(h)
 	hist := make([]HistogramColumn, 0, len(h))
 	for v, p := range h {
 		hist = append(hist, HistogramColumn{V: v, P: p})

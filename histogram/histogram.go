@@ -74,6 +74,9 @@ func multiply(h1, h2 Histogram) Histogram {
 	hist1 := h1.Hist()
 	hist := make(map[int]float64)
 	for v1, p1 := range hist1 {
+		if v1 == 0 {
+			continue
+		}
 		hList := make([]Histogram, v1)
 		for i := 0; i < v1; i++ {
 			hList[i] = h2
