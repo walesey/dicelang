@@ -2,6 +2,8 @@
 
 ### A programming language for calculating statistics for dice rolls.
 
+[![Build Status](https://travis-ci.org/walesey/dicelang.svg?branch=master)](https://travis-ci.org/walesey/dicelang)
+
 ## Installation
 
 ` $ go get github.com/walesey/dicelang `
