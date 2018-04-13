@@ -1,7 +1,6 @@
 package histogram
 
 import (
-	"math"
 	"math/rand"
 )
 
@@ -91,25 +90,4 @@ func multiply(h1, h2 Histogram) Histogram {
 		}
 	}
 	return Fixed(hist)
-}
-
-func RoundHistogram(h map[int]float64) map[int]float64 {
-	for k, v := range h {
-		h[k] = round(v, .5, 5)
-	}
-	return h
-}
-
-func round(val float64, roundOn float64, places int) (newVal float64) {
-	var round float64
-	pow := math.Pow(10, float64(places))
-	digit := pow * val
-	_, div := math.Modf(digit)
-	if div >= roundOn {
-		round = math.Ceil(digit)
-	} else {
-		round = math.Floor(digit)
-	}
-	newVal = round / pow
-	return
 }

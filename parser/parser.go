@@ -39,7 +39,7 @@ func (parser Parser) Execute() (result string, err error) {
 	case "resolve":
 		data = hist.Resolve()
 	case "hist":
-		data = histogram.RoundHistogram(hist.Hist())
+		data = histogram.FormatHistogram(hist.Hist())
 	case "mean":
 		h := hist.Hist()
 		var prob float64

@@ -1,8 +1,8 @@
 # Dicelang
 
-### A programming language for calculating statistics for dice rolls.
-
 [![Build Status](https://travis-ci.org/walesey/dicelang.svg?branch=master)](https://travis-ci.org/walesey/dicelang)
+
+### A programming language for calculating dice roll statistics.
 
 ## Installation
 
