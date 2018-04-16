@@ -28,5 +28,6 @@
 ### number of dice that roll equal to or greater than a value
 `$ dicelang "hist 10d6.5+" `
 
-![Example](example.png?raw=true)
+![Example1](example.png?raw=true)
+![Example2](example2.png?raw=true)
 
