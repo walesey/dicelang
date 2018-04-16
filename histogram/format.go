@@ -17,21 +17,27 @@ func (a ByValue) Len() int           { return len(a) }
 func (a ByValue) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByValue) Less(i, j int) bool { return a[i].V < a[j].V }
 
-func FormatHistogram(h map[int]float64) []HistogramColumn {
-	h = RoundHistogram(h)
-	hist := make([]HistogramColumn, 0, len(h))
+func FormatHistogram(hist Histogram) []HistogramColumn {
+	h := hist.Hist()
+	hList := make([]HistogramColumn, 0, len(h))
 	for v, p := range h {
-		hist = append(hist, HistogramColumn{V: v, P: p})
+		hList = append(hList, HistogramColumn{V: v, P: p})
 	}
-	sort.Sort(ByValue(hist))
-	return hist
+	sort.Sort(ByValue(hList))
+	return hList
 }
 
-func RoundHistogram(h map[int]float64) map[int]float64 {
-	for k, v := range h {
-		h[k] = round(v, .5, 5)
+func RoundHistogram(hist Histogram, places int) Histogram {
+	h := hist.Hist()
+	for v, p := range h {
+		newP := round(p, .5, places)
+		if newP == 0 {
+			delete(h, v)
+		} else {
+			h[v] = newP
+		}
 	}
-	return h
+	return Fixed(h)
 }
 
 func round(val float64, roundOn float64, places int) (newVal float64) {

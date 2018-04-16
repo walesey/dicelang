@@ -39,7 +39,7 @@ func (parser Parser) Execute() (result string, err error) {
 	case "resolve":
 		data = hist.Resolve()
 	case "hist":
-		data = histogram.FormatHistogram(hist.Hist())
+		data = histogram.FormatHistogram(histogram.RoundHistogram(hist, 3))
 	case "mean":
 		h := hist.Hist()
 		var prob float64
@@ -79,7 +79,7 @@ func (parser Parser) parseStatement() (hist histogram.Histogram, tkn token.Token
 			err = fmt.Errorf("Invalid syntax")
 			return
 		}
-		histograms = append(histograms, hist)
+		histograms = append(histograms, histogram.RoundHistogram(hist, 9))
 		if _, e := parser.parseToken(token.PERIOD); e != nil {
 			break
 		}

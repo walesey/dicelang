@@ -9,8 +9,7 @@ import (
 
 func Test_MultiDice_Hist(t *testing.T) {
 	d := MultiDice{Dice{Size: 6}, 2} // 2d6.add
-	h := d.Hist()
-	expected := map[int]float64{
+	expectedHist := histogram.Fixed(map[int]float64{
 		2:  1.0 / 36.0,
 		3:  2.0 / 36.0,
 		4:  3.0 / 36.0,
@@ -22,8 +21,8 @@ func Test_MultiDice_Hist(t *testing.T) {
 		10: 3.0 / 36.0,
 		11: 2.0 / 36.0,
 		12: 1.0 / 36.0,
-	}
-	histogram.RoundHistogram(expected)
-	histogram.RoundHistogram(h)
+	})
+	expected := histogram.RoundHistogram(expectedHist, 5)
+	h := histogram.RoundHistogram(d, 5)
 	assert.EqualValues(t, expected, h)
 }

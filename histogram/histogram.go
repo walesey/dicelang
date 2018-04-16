@@ -71,17 +71,19 @@ func Multiply(histograms ...Histogram) Histogram {
 }
 
 func multiply(h1, h2 Histogram) Histogram {
-	hist1 := h1.Hist()
+	formattedH1 := FormatHistogram(h1)
 	hist := make(map[int]float64)
-	for v1, p1 := range hist1 {
+	h2Aggregate := h2
+	count := 1
+	for _, column := range formattedH1 {
+		v1, p1 := column.V, column.P
 		if v1 == 0 {
 			continue
 		}
-		hList := make([]Histogram, v1)
-		for i := 0; i < v1; i++ {
-			hList[i] = h2
+		for i := count; i < v1; i++ {
+			h2Aggregate = aggregate(h2Aggregate, h2)
+			count++
 		}
-		h2Aggregate := Aggregate(hList...)
 		for v2, p2 := range h2Aggregate.Hist() {
 			v := v2
 			p := p1 * p2
