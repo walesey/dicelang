@@ -1,13 +1,13 @@
 function generateDiagram(){
-  var code = document.getElementById("code").value;
+  var codes = document.getElementById("code").value.split("\n")
+  var code = JSON.stringify(codes);
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4) {
       if (this.status == 200) {
-        var data = JSON.parse(this.responseText);
+        var response = JSON.parse(this.responseText);
 
         var layout = {
-          title: code,
           xaxis: {
             title: 'Result',
           },
@@ -16,15 +16,37 @@ function generateDiagram(){
           }
         };
         
-        var data = {
-          x: data.map(function(d) { return d.V }),
-          y: data.map(function(d) { return d.P }),
-          mode: 'lines',
-          name: 'Lines'
-        };
-        
+        var maxY = 0;
+        var data = response.reduce(function(acc, hist, i) {
+          if (typeof hist != 'number'){
+            hist.forEach(h => {
+              if (h.P > maxY) maxY = h.P;
+            });
+            acc.push({
+              x: hist.map(function(h) { return h.V }),
+              y: hist.map(function(h) { return h.P }),
+              mode: 'lines',
+              name: codes[i]
+            });
+          }
+          return acc;
+        }, []);
+
+        response.forEach(function(hist, i) {
+          if (typeof hist == 'number'){
+            data.push({
+              x: [hist, hist],
+              y: [0.0, maxY],
+              mode: 'lines',
+              name: codes[i]
+            })
+          }
+        });
+
+        console.log(data);
+
         document.getElementById("plot").innerHTML = "";
-        Plotly.newPlot('plot', [data], layout);
+        Plotly.newPlot('plot', data, layout);
       } else {
         document.getElementById("plot").innerHTML = this.responseText;
       }

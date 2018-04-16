@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"go/build"
 	"html/template"
@@ -50,27 +51,44 @@ func main() {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprint("Error: ", err)))
-		}
-		code := string(body)
-
-		if cachedResult, ok := codeCache.Load(code); ok {
-			w.WriteHeader(http.StatusOK)
-			w.Write(cachedResult.([]byte))
 			return
 		}
 
-		log.Println("Parsing: ", code)
-		buf := bytes.NewReader(body)
-		var output string
-		if output, err = parser.NewParser(buf).Execute(); err != nil {
-			log.Println("Error Parsing: ", err.Error())
+		var codes []string
+		if err = json.Unmarshal(body, &codes); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprint("Error: ", err)))
+			return
+		}
+
+		results := make([]interface{}, len(codes))
+		for i, code := range codes {
+			if cachedResult, ok := codeCache.Load(code); ok {
+				results[i] = cachedResult
+				continue
+			}
+
+			log.Println("Parsing: ", code)
+			buf := bytes.NewReader([]byte(code))
+			var output interface{}
+			if output, err = parser.NewParser(buf).Execute(); err != nil {
+				log.Println("Error Parsing: ", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprint("Parse Error: ", err)))
+				return
+			} else {
+				results[i] = output
+			}
+			codeCache.Store(code, output)
+		}
+
+		if output, err := json.Marshal(results); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprint("Parse Error: ", err)))
+			w.Write([]byte(fmt.Sprint("Json Marshal Error: ", err)))
 		} else {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(output))
+			w.Write(output)
 		}
-		codeCache.Store(code, []byte(output))
 	})
 
 	// periodically flush the code cache
