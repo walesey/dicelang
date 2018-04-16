@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
+	"time"
 
 	"github.com/walesey/dicelang/parser"
 )
@@ -42,16 +44,25 @@ func main() {
 		}
 	})
 
+	codeCache := new(sync.Map)
 	http.HandleFunc("/code", func(w http.ResponseWriter, req *http.Request) {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprint("Error: ", err)))
 		}
+		code := string(body)
 
-		log.Println("Parsing: ", string(body))
+		if cachedResult, ok := codeCache.Load(code); ok {
+			w.WriteHeader(http.StatusOK)
+			w.Write(cachedResult.([]byte))
+			return
+		}
+
+		log.Println("Parsing: ", code)
 		buf := bytes.NewReader(body)
-		if output, err := parser.NewParser(buf).Execute(); err != nil {
+		var output string
+		if output, err = parser.NewParser(buf).Execute(); err != nil {
 			log.Println("Error Parsing: ", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprint("Parse Error: ", err)))
@@ -59,6 +70,19 @@ func main() {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(output))
 		}
+		codeCache.Store(code, []byte(output))
 	})
+
+	// periodically flush the code cache
+	go func() {
+		for {
+			time.Sleep(30 * time.Minute)
+			codeCache.Range(func(key, value interface{}) bool {
+				codeCache.Delete(key)
+				return true
+			})
+		}
+	}()
+
 	log.Fatal(http.ListenAndServe(":4000", nil))
 }
