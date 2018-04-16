@@ -13,6 +13,8 @@ import (
 	"github.com/walesey/dicelang/token"
 )
 
+const ROUND_DECIMALS = 4
+
 type Parser struct {
 	lexer Lexer
 }
@@ -39,7 +41,7 @@ func (parser Parser) Execute() (result string, err error) {
 	case "resolve":
 		data = hist.Resolve()
 	case "hist":
-		data = histogram.FormatHistogram(histogram.RoundHistogram(hist, 3))
+		data = histogram.FormatHistogram(histogram.RoundHistogram(hist, ROUND_DECIMALS))
 	case "mean":
 		h := hist.Hist()
 		var prob float64
