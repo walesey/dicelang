@@ -55,7 +55,8 @@ function generateDiagram(){
   xhttp.open("POST", "/code", true);
   xhttp.send(code);
 
-  document.getElementById("share").setAttribute("href", "?code=" + btoa(code))
+  var b64Code = btoa(document.getElementById("code").value);
+  document.getElementById("share").setAttribute("href", "?code=" + b64Code);
 }
 
 document.getElementById("code").addEventListener("keyup", generateDiagram);
