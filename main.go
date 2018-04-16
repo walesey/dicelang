@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -14,7 +15,11 @@ func main() {
 		if output, err := parser.NewParser(buf).Execute(); err != nil {
 			fmt.Println("ERROR: ", err)
 		} else {
-			fmt.Println(output)
+			if jsonOutput, err := json.Marshal(output); err != nil {
+				fmt.Println("ERROR: ", err)
+			} else {
+				fmt.Println(string(jsonOutput))
+			}
 		}
 	}
 }

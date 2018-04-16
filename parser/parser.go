@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -25,9 +24,9 @@ func NewParser(src io.ReadSeeker) Parser {
 	}
 }
 
-func (parser Parser) Execute() (result string, err error) {
+func (parser Parser) Execute() (result interface{}, err error) {
 	var operation string
-	if operation, err = parser.parseToken(token.IDENTIFIER); err != nil {
+	if _, operation, err = parser.parseToken(token.IDENTIFIER); err != nil {
 		return
 	}
 
@@ -36,38 +35,30 @@ func (parser Parser) Execute() (result string, err error) {
 		return
 	}
 
-	var data interface{}
 	switch operation {
 	case "resolve":
-		data = hist.Resolve()
+		result = hist.Resolve()
 	case "hist":
-		data = histogram.FormatHistogram(histogram.RoundHistogram(hist, ROUND_DECIMALS))
+		result = histogram.FormatHistogram(histogram.RoundHistogram(hist, ROUND_DECIMALS))
 	case "mean":
 		h := hist.Hist()
 		var prob float64
 		for k, v := range h {
 			prob += float64(k) * v
 		}
-		data = prob
+		result = prob
 	default:
 		err = fmt.Errorf("Invalid operation '%v'", operation)
 		return
 	}
-
-	var resultData []byte
-	resultData, err = json.Marshal(data)
-	result = string(resultData)
 	return
 }
 
-func (parser Parser) parseToken(expect token.Token) (string, error) {
-	tkn, literal, err := parser.lexer.Scan()
-	if err != nil {
-		return "", err
-	} else if tkn != expect {
-		return "", fmt.Errorf("unexpected token: '%v', expected '%v'", tkn.String(), expect.String())
+func (parser Parser) parseToken(expect token.Token) (tkn token.Token, literal string, err error) {
+	if tkn, literal, err = parser.lexer.Scan(); tkn != expect {
+		err = fmt.Errorf("unexpected token: '%v', expected '%v'", tkn.String(), expect.String())
 	}
-	return literal, nil
+	return
 }
 
 func (parser Parser) parseStatement() (hist histogram.Histogram, tkn token.Token, literal string, err error) {
@@ -82,7 +73,8 @@ func (parser Parser) parseStatement() (hist histogram.Histogram, tkn token.Token
 			return
 		}
 		histograms = append(histograms, histogram.RoundHistogram(hist, 9))
-		if _, e := parser.parseToken(token.PERIOD); e != nil {
+		var e error
+		if tkn, literal, e = parser.parseToken(token.PERIOD); e != nil {
 			break
 		}
 	}
@@ -119,17 +111,15 @@ func (parser Parser) parseDice() (hist histogram.Histogram, tkn token.Token, lit
 		return
 	}
 
-	hist, err = parser.parseDiceOperator(size, count, false)
+	hist, tkn, literal, err = parser.parseDiceOperator(size, count, false)
 	return
 }
 
-func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histogram.Histogram, err error) {
-	if _, err = parser.parseToken(token.PERIOD); err != nil {
+func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histogram.Histogram, tkn token.Token, literal string, err error) {
+	if tkn, literal, err = parser.parseToken(token.PERIOD); err != nil {
 		return
 	}
 
-	var tkn token.Token
-	var literal string
 	if tkn, literal, err = parser.lexer.Scan(); err != nil {
 		return
 	}
@@ -140,7 +130,7 @@ func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histo
 	// 		return
 	// 	}
 	case token.IDENTIFIER:
-		if hist, err = parser.parseDiceOperatorLiteral(size, count, invert, literal); err != nil {
+		if hist, tkn, literal, err = parser.parseDiceOperatorLiteral(size, count, invert, literal); err != nil {
 			return
 		}
 	default:
@@ -150,47 +140,19 @@ func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histo
 	return
 }
 
-// func (parser Parser) parseDiceOperatorAggregate(size, count int, invert bool) (hist histogram.Histogram, err error) {
-// 	histograms := []histogram.Histogram{}
-
-// 	var tkn token.Token
-// 	var literal string
-// 	for {
-// 		if literal, err = parser.parseToken(token.IDENTIFIER); err != nil {
-// 			return
-// 		}
-// 		if hist, err = parser.parseDiceOperatorLiteral(size, count, invert, literal); err != nil {
-// 			return
-// 		}
-// 		if hist, tkn, literal, err = parser.parseStatement(); err != nil {
-// 			return
-// 		}
-// 		histograms = append(histograms, hist)
-// 		if tkn != token.COMMA {
-// 			break
-// 		}
-// 	}
-
-// 	hist = histogram.Aggregate(histograms...)
-// 	if tkn != token.CLOSE_BRACKET {
-// 		err = fmt.Errorf("Unexpected token '%v', expected close bracket ']'", tkn.String())
-// 	}
-// 	return
-// }
-
-func (parser Parser) parseDiceOperatorLiteral(size, count int, invert bool, literal string) (hist histogram.Histogram, err error) {
+func (parser Parser) parseDiceOperatorLiteral(size, count int, invert bool, arg string) (hist histogram.Histogram, tkn token.Token, literal string, err error) {
 	d := dice.Dice{Size: size}
-	if literal == "not" {
-		if hist, err = parser.parseDiceOperator(size, count, !invert); err != nil {
+	if arg == "not" {
+		if hist, tkn, literal, err = parser.parseDiceOperator(size, count, !invert); err != nil {
 			return
 		}
-	} else if literal == "add" {
+	} else if arg == "add" {
 		hist = dice.MultiDice{Dice: d, Count: count}
 	} else { // gte: eg. 4+, 6+, ...
 		re := regexp.MustCompile(`([0-9]+)\+`)
-		matches := re.FindStringSubmatch(literal)
+		matches := re.FindStringSubmatch(arg)
 		if len(matches) < 2 {
-			err = fmt.Errorf("Invalid dice operator syntax: '%v'", literal)
+			err = fmt.Errorf("Invalid dice operator syntax: '%v'", arg)
 			return
 		}
 		var gte int
@@ -207,7 +169,7 @@ func (parser Parser) parseDiceOperatorLiteral(size, count int, invert bool, lite
 }
 
 func (parser Parser) parseAggregate() (hist histogram.Histogram, tkn token.Token, literal string, err error) {
-	if tkn, literal, err = parser.lexer.Scan(); err != nil {
+	if hist, tkn, literal, err = parser.parseConst(); hist != nil || err != nil {
 		return
 	}
 	if tkn != token.OPEN_BRACKET {
@@ -229,5 +191,28 @@ func (parser Parser) parseAggregate() (hist histogram.Histogram, tkn token.Token
 	if tkn != token.CLOSE_BRACKET {
 		err = fmt.Errorf("Unexpected token '%v', expected close bracket ']'", tkn.String())
 	}
+	return
+}
+
+func (parser Parser) parseConst() (hist histogram.Histogram, tkn token.Token, literal string, err error) {
+	if tkn, literal, err = parser.lexer.Scan(); err != nil {
+		return
+	}
+	if tkn != token.IDENTIFIER {
+		return
+	}
+
+	re := regexp.MustCompile(`^([0-9]+)$`)
+	matches := re.FindStringSubmatch(literal)
+	if len(matches) < 2 {
+		return
+	}
+
+	var value int
+	if value, err = strconv.Atoi(matches[1]); err != nil {
+		return
+	}
+
+	hist = histogram.Fixed(map[int]float64{value: 1.0})
 	return
 }
