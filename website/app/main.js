@@ -19,12 +19,17 @@ function generateDiagram(){
         var maxY = 0;
         var data = response.reduce(function(acc, hist, i) {
           if (typeof hist != 'number'){
+            var scale = 1.0;
+            if (response.length > 1) {
+              var histRange = hist[hist.length-1].V - hist[0].V
+              scale = hist.length / histRange;
+            }
             hist.forEach(h => {
-              if (h.P > maxY) maxY = h.P;
+              if (h.P*scale > maxY) maxY = h.P*scale;
             });
             acc.push({
               x: hist.map(function(h) { return h.V }),
-              y: hist.map(function(h) { return h.P }),
+              y: hist.map(function(h) { return h.P * scale }),
               mode: 'lines',
               name: codes[i]
             });

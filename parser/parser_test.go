@@ -31,8 +31,19 @@ func Test_Parser_Execute_Aggregate(t *testing.T) {
 	assert.JSONEq(t, expected, string(jsonResult))
 }
 
-func Test_Parser_Execute_Adds_To_1_0(t *testing.T) {
+func Test_Parser_Execute_EG1_Adds_To_1_0(t *testing.T) {
 	parser := NewParser(bytes.NewReader([]byte("hist 16d6.4+.d6.4+.d6.4+.d6.4+")))
+	result, err := parser.Execute()
+	assert.Nil(t, err)
+	var totalP float64
+	for _, hc := range result.([]histogram.HistogramColumn) {
+		totalP += hc.P
+	}
+	assert.EqualValues(t, 1.0, util.Round(totalP, .5, 5))
+}
+
+func Test_Parser_Execute_EG2_Adds_To_1(t *testing.T) {
+	parser := NewParser(bytes.NewReader([]byte("hist 6d3.add.d6.3+.d6.3+.d6.not.4+.4")))
 	result, err := parser.Execute()
 	assert.Nil(t, err)
 	var totalP float64
