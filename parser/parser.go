@@ -120,39 +120,22 @@ func (parser Parser) parseDiceOperator(size, count int, invert bool) (hist histo
 		return
 	}
 
-	if tkn, literal, err = parser.lexer.Scan(); err != nil {
+	if tkn, literal, err = parser.parseToken(token.IDENTIFIER); err != nil {
 		return
 	}
 
-	switch tkn {
-	// case token.OPEN_BRACKET:
-	// 	if hist, err = parser.parseDiceOperatorAggregate(size, count, invert); err != nil {
-	// 		return
-	// 	}
-	case token.IDENTIFIER:
-		if hist, tkn, literal, err = parser.parseDiceOperatorLiteral(size, count, invert, literal); err != nil {
-			return
-		}
-	default:
-		err = fmt.Errorf("Unexpected token '%v', expected dice operator", tkn.String())
-	}
-
-	return
-}
-
-func (parser Parser) parseDiceOperatorLiteral(size, count int, invert bool, arg string) (hist histogram.Histogram, tkn token.Token, literal string, err error) {
 	d := dice.Dice{Size: size}
-	if arg == "not" {
+	if literal == "not" {
 		if hist, tkn, literal, err = parser.parseDiceOperator(size, count, !invert); err != nil {
 			return
 		}
-	} else if arg == "add" {
+	} else if literal == "add" {
 		hist = dice.MultiDice{Dice: d, Count: count}
 	} else { // gte: eg. 4+, 6+, ...
 		re := regexp.MustCompile(`([0-9]+)\+`)
-		matches := re.FindStringSubmatch(arg)
+		matches := re.FindStringSubmatch(literal)
 		if len(matches) < 2 {
-			err = fmt.Errorf("Invalid dice operator syntax: '%v'", arg)
+			err = fmt.Errorf("Invalid dice operator syntax: '%v'", literal)
 			return
 		}
 		var gte int
@@ -165,6 +148,7 @@ func (parser Parser) parseDiceOperatorLiteral(size, count int, invert bool, arg 
 			hist = dice.DicePool{Dice: d, Count: count, GTE: gte}
 		}
 	}
+
 	return
 }
 

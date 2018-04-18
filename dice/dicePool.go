@@ -1,5 +1,7 @@
 package dice
 
+import "github.com/walesey/dicelang/histogram"
+
 // DicePool - a pool of dice rolls with a GTE value
 type DicePool struct {
 	Dice  Dice
@@ -27,13 +29,14 @@ func (dp DicePool) Values() []int {
 }
 
 func (dp DicePool) Hist() map[int]float64 {
-	p := float64(dp.Dice.Size-dp.GTE+1) / float64(dp.Dice.Size)
-	weightedD2 := Dice{Size: 2, Weights: []float64{(1.0 - p), p}}
-	md := MultiDice{Dice: weightedD2, Count: dp.Count}
-	h := md.Hist()
-	hist := make(map[int]float64)
-	for k, v := range h {
-		hist[k-dp.Count] = v
+	size := float64(dp.Dice.Size)
+	gte := float64(dp.GTE)
+	p := (size - gte + 1) / size
+	h := histogram.Fixed(map[int]float64{0: 1.0 - p, 1: p})
+	dd := make([]histogram.Histogram, dp.Count)
+	for i := 0; i < dp.Count; i++ {
+		dd[i] = h
 	}
+	hist := histogram.Aggregate(dd...).Hist()
 	return hist
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/walesey/dicelang/util"
 )
 
 type D2 struct{}
@@ -46,4 +47,13 @@ func Test_Multiply(t *testing.T) {
 		8: 1.0 / 32.0,
 	}
 	assert.EqualValues(t, expected, h)
+}
+
+func Test_Multiply_Adds_To_One(t *testing.T) {
+	h := Multiply(D2{}, D2{}, D2{}, D2{}, D2{}, D2{}).Hist()
+	var totalP float64
+	for _, p := range h {
+		totalP += p
+	}
+	assert.EqualValues(t, 1.0, util.Round(totalP, .5, 5))
 }

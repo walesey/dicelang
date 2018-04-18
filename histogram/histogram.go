@@ -77,7 +77,8 @@ func multiply(h1, h2 Histogram) Histogram {
 	count := 1
 	for _, column := range formattedH1 {
 		v1, p1 := column.V, column.P
-		if v1 == 0 {
+		if v1 <= 0 {
+			hist[v1] = p1
 			continue
 		}
 		for i := count; i < v1; i++ {

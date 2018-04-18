@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/walesey/dicelang/histogram"
+	"github.com/walesey/dicelang/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,4 +29,15 @@ func Test_Parser_Execute_Aggregate(t *testing.T) {
 	jsonResult, err := json.Marshal(result)
 	assert.Nil(t, err)
 	assert.JSONEq(t, expected, string(jsonResult))
+}
+
+func Test_Parser_Execute_Adds_To_1_0(t *testing.T) {
+	parser := NewParser(bytes.NewReader([]byte("hist 16d6.4+.d6.4+.d6.4+.d6.4+")))
+	result, err := parser.Execute()
+	assert.Nil(t, err)
+	var totalP float64
+	for _, hc := range result.([]histogram.HistogramColumn) {
+		totalP += hc.P
+	}
+	assert.EqualValues(t, 1.0, util.Round(totalP, .5, 5))
 }
