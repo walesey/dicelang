@@ -31,6 +31,7 @@ function createBoxPlot(hist, name) {
       return acc;
     }, []),
     type: 'box',
+    boxmean: true,
     name: name
   };
 }
