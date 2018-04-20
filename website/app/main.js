@@ -1,3 +1,40 @@
+var boxplotMode = false;
+
+function createHistogram(hist, name, maxY, rspLength) {
+  var scale = 1.0;
+  if (rspLength > 1) {
+    var histRange = hist[hist.length-1].V - hist[0].V
+    scale = hist.length / histRange;
+  }
+  hist.forEach(h => {
+    if (h.P*scale > maxY) maxY = h.P*scale;
+  });
+  return {
+    x: hist.map(function(h) { return h.V }),
+    y: hist.map(function(h) { return h.P * scale }),
+    mode: 'lines',
+    name: name
+  };
+}
+
+function createBoxPlot(hist, name) {
+  var nbSamples = 10000;
+  var pCounter = 0.0;
+  var sampleCounter = 0;
+  return {
+    x: hist.reduce(function(acc, h) { 
+      while ((pCounter + h.P) >+ (sampleCounter/nbSamples)) {
+        acc.push(h.V);
+        sampleCounter++;
+      }
+      pCounter += h.P;
+      return acc;
+    }, []),
+    type: 'box',
+    name: name
+  };
+}
+
 function generateDiagram(){
   var codes = document.getElementById("code").value.split("\n")
   var code = JSON.stringify(codes);
@@ -19,20 +56,7 @@ function generateDiagram(){
         var maxY = 0;
         var data = response.reduce(function(acc, hist, i) {
           if (typeof hist != 'number'){
-            var scale = 1.0;
-            if (response.length > 1) {
-              var histRange = hist[hist.length-1].V - hist[0].V
-              scale = hist.length / histRange;
-            }
-            hist.forEach(h => {
-              if (h.P*scale > maxY) maxY = h.P*scale;
-            });
-            acc.push({
-              x: hist.map(function(h) { return h.V }),
-              y: hist.map(function(h) { return h.P * scale }),
-              mode: 'lines',
-              name: codes[i]
-            });
+            acc.push(boxplotMode ? createBoxPlot(hist, codes[i]) : createHistogram(hist, codes[i], maxY, response.length));
           }
           return acc;
         }, []);
@@ -48,8 +72,6 @@ function generateDiagram(){
           }
         });
 
-        console.log(data);
-
         document.getElementById("plot").innerHTML = "";
         Plotly.newPlot('plot', data, layout);
       } else {
@@ -64,5 +86,11 @@ function generateDiagram(){
   document.getElementById("share").setAttribute("href", "?code=" + b64Code);
 }
 
+function onClickBoxplot(e) {
+  boxplotMode = e.target.checked;
+  generateDiagram();
+}
+
 document.getElementById("code").addEventListener("keyup", generateDiagram);
+document.getElementById("boxplot").addEventListener("click", onClickBoxplot);
 generateDiagram();
